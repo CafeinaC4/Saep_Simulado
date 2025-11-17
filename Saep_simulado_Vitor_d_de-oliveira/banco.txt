@@ -1,0 +1,85 @@
+-- Criação das tabelas para o sistema de controle de materiais esportivos
+CREATE TABLE IF NOT EXISTS public.materiais
+(
+    id serial NOT NULL,
+    nome text COLLATE pg_catalog."default" NOT NULL,
+    quantidade integer NOT NULL DEFAULT 0,
+    estoque_minimo integer NOT NULL DEFAULT 0,
+    CONSTRAINT materiais_pkey PRIMARY KEY (id)
+);
+
+-- Tabela de movimentações de materiais
+CREATE TABLE IF NOT EXISTS public.movimentacoes
+(
+    id serial NOT NULL,
+    materiais_id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    tipo text COLLATE pg_catalog."default" NOT NULL,
+    quantidade integer NOT NULL,
+    data_movimentacao timestamp without time zone NOT NULL DEFAULT now(),
+    observacao text COLLATE pg_catalog."default",
+    CONSTRAINT movimentacoes_pkey PRIMARY KEY (id)
+);
+
+-- Tabela de ususarios
+CREATE TABLE IF NOT EXISTS public.usuarios
+(
+    id serial NOT NULL,
+    nome text COLLATE pg_catalog."default" NOT NULL,
+    tipo text COLLATE pg_catalog."default" NOT NULL,
+    email text COLLATE pg_catalog."default" NOT NULL,
+    senha text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT usuarios_pkey PRIMARY KEY (id),
+    CONSTRAINT usuarios_email_key UNIQUE (email)
+);
+
+-- Usuários
+INSERT INTO usuarios (nome, email, senha, tipo) VALUES
+  ('Ana Souza',  'ana@example.com',   '123', 'Aluno'),
+  ('Bruno Lima', 'bruno@example.com', '123', 'Aluno'),
+  ('Carla Dias', 'carla@example.com', '123', 'Instrutor')
+ON CONFLICT (email) DO NOTHING;
+
+-- materiais (modelos oficiais da "Bolasia")
+INSERT INTO materiais (nome, quantidade, estoque_minimo) VALUES
+  ('Bolas', 40, 10),
+  ('Coletes', 60, 15),
+  ('Chuteiras', 25, 12)
+ON CONFLICT DO NOTHING;
+
+-- Movimentações (histórico inicial)
+-- Entradas iniciais (Ana)
+INSERT INTO movimentacoes (materiais_id, usuario_id, tipo, quantidade, data_movimentacao, observacao) VALUES
+  ((SELECT id FROM materiais WHERE nome='Bolas'),
+   (SELECT id FROM usuarios WHERE email='ana@example.com'),
+   'entrada', 30, NOW() - INTERVAL '2 days', 'Retirada'),
+  ((SELECT id FROM materiais WHERE nome='Coletes'),
+   (SELECT id FROM usuarios WHERE email='ana@example.com'),
+   'entrada', 50, NOW() - INTERVAL '2 days', 'Retirada'),
+  ((SELECT id FROM materiais WHERE nome='Chuteiras'),
+   (SELECT id FROM usuarios WHERE email='ana@example.com'),
+   'entrada', 20, NOW() - INTERVAL '2 days', 'Retirada');
+
+-- Saídas (Bruno)
+INSERT INTO movimentacoes (materiais_id, usuario_id, tipo, quantidade, data_movimentacao, observacao) VALUES
+  ((SELECT id FROM materiais WHERE nome='Bolas'),
+   (SELECT id FROM usuarios WHERE email='bruno@example.com'),
+   'saida', 6, NOW() - INTERVAL '1 day', 'Retirada para evento'),
+  ((SELECT id FROM materiais WHERE nome='Coletes'),
+   (SELECT id FROM usuarios WHERE email='bruno@example.com'),
+   'saida', 15, NOW() - INTERVAL '1 day', 'Retirada para feira'),
+  ((SELECT id FROM materiais WHERE nome='Chuteiras'),
+   (SELECT id FROM usuarios WHERE email='bruno@example.com'),
+   'saida', 4, NOW() - INTERVAL '1 day', 'Retirada para divulgação');
+
+-- Reposição (Carla)
+INSERT INTO movimentacoes (materiais_id, usuario_id, tipo, quantidade, observacao) VALUES
+  ((SELECT id FROM materiais WHERE nome='Bolas'),
+   (SELECT id FROM usuarios WHERE email='carla@example.com'),
+   'entrada', 10, 'Devolução de kits'),
+  ((SELECT id FROM materiais WHERE nome='Coletes'),
+   (SELECT id FROM usuarios WHERE email='carla@example.com'),
+   'entrada', 20, 'Devolução de kits'),
+  ((SELECT id FROM materiais WHERE nome='Chuteiras'),
+   (SELECT id FROM usuarios WHERE email='carla@example.com'),
+   'entrada', 8, 'Devolução de kits');
